@@ -110,6 +110,7 @@ function ProcessArguments() {
         esac
     done
 
+    # use command line arguments if provided
     if [ ${#ARGV[@]} -gt 0 ]; then
         export MOUNT_COMMAND=${ARGV[0]}
     fi
@@ -122,7 +123,12 @@ function ProcessArguments() {
         export MOUNT_PATH=${ARGV[2]}
     fi
 
-    export EXEC_COMMAND="sshfs ${MOUNT_USER}@${MOUNT_HOST}:${MOUNT_PATH} ${MOUNT_POINT}"
+    # build the command that will be executed
+    if [ -z "$MOUNT_OPTIONS" ]; then
+        export EXEC_COMMAND="sshfs ${MOUNT_USER}@${MOUNT_HOST}:${MOUNT_PATH} ${MOUNT_POINT}"
+    else
+        export EXEC_COMMAND="sshfs ${MOUNT_USER}@${MOUNT_HOST}:${MOUNT_PATH} ${MOUNT_POINT} -o ${MOUNT_OPTIONS}"
+    fi
 }
 
 
@@ -147,11 +153,7 @@ case ${MOUNT_COMMAND} in
     m|mount)
         CheckHostKnown
 
-        if [ -z "$MOUNT_OPTIONS" ]; then
-            echo ${MOUNT_PASSWORD} | sshfs ${MOUNT_USER}@${MOUNT_HOST}:${MOUNT_PATH} ${MOUNT_POINT} -o password_stdin
-        else
-            echo ${MOUNT_PASSWORD} | sshfs ${MOUNT_USER}@${MOUNT_HOST}:${MOUNT_PATH} ${MOUNT_POINT} -o password_stdin,${MOUNT_OPTIONS}
-        fi
+        echo ${MOUNT_PASSWORD} | `$EXEC_COMMAND -o password_stdin`
         ;;
     u|umount)
         fusermount -u ${MOUNT_POINT}
